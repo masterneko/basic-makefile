@@ -1,5 +1,5 @@
 # basic-makefile
-A high quality makefile template
+A decent quality makefile template
 
 ```makefile
 CXX := g++
@@ -11,8 +11,11 @@ BIN_DIRECTORY = bin
 
 CREATE_DIRS = mkdir -p $(@D)
 
+INC_DIRECTORIES := \
+		$(SRC_DIRECTORY)
+
 CXXFLAGS := \
-		-I $(SRC_DIRECTORY) \
+		$(foreach inc_dir,$(INC_DIRECTORIES),-I $(inc_dir)) \
 		-std=c++17
 
 LFLAGS :=
@@ -26,19 +29,23 @@ HEADERS := \
 
 OBJECTS := $(SOURCES:$(SRC_DIRECTORY)/%.cpp=$(OBJ_DIRECTORY)/%.o)
 
-all: $(BIN_DIRECTORY)/a.out
+EXECUTABLE := $(BIN_DIRECTORY)/a.out
 
-$(BIN_DIRECTORY)/a.out: $(OBJECTS)
+all: $(EXECUTABLE)
+
+$(EXECUTABLE): $(OBJECTS)
 	@$(CREATE_DIRS)
-	@echo "linking"
+	@echo "linking $@"
 	@$(CXX) $(OBJECTS) -o $@ $(LFLAGS)
 
 $(OBJ_DIRECTORY)/%.o: $(SRC_DIRECTORY)/%.cpp $(HEADERS)
 	@$(CREATE_DIRS)
-	@echo "$@"
+	@echo "compile $@"
 	@$(CXX) -c $< -o $@ $(CXXFLAGS)
 
 clean:
 	@rm -rf $(OBJ_DIRECTORY)
 	@rm -rf $(BIN_DIRECTORY)
 ```
+
+To prevent total recompilation, it is suggested that larger projects with a lot of header files use the `get_headers.sh` script. Just replace `$(HEADERS)` with  **`$(shell ./get_headers.sh $(SRC_DIRECTORY)/*.cpp $(INC_DIRECTORIES))`** in your recipe dependency list.
