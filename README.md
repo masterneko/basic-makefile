@@ -1,7 +1,12 @@
 # basic-makefile
-A decent quality makefile template
+A decent quality makefile template for C/C++
+
+* Automatically detects changes in your source tree
+* If a header file is modified, the source files which depend on it will be recompiled
 
 ```makefile
+rwildcard = $(foreach dir, $(wildcard $(1:=/*)), $(call rwildcard, $(dir), $2) $(filter $(subst *, %, $2), $(dir)))
+
 CXX := g++
 CC := gcc
 
@@ -15,17 +20,13 @@ INC_DIRECTORIES := \
 		$(SRC_DIRECTORY)
 
 CXXFLAGS := \
-		$(foreach inc_dir,$(INC_DIRECTORIES),-I $(inc_dir)) \
+		$(foreach inc_dir, $(INC_DIRECTORIES), -I $(inc_dir)) \
 		-std=c++17
 
 LFLAGS :=
 
 SOURCES := \
-		$(wildcard $(SRC_DIRECTORY)/*.cpp) \
-		$(wildcard $(SRC_DIRECTORY)/*/*.cpp)
-HEADERS := \
-		$(wildcard $(SRC_DIRECTORY)/*.h) \
-		$(wildcard $(SRC_DIRECTORY)/*/*.h)
+		$(call rwildcard, $(SRC_DIRECTORY), *.cpp)
 
 OBJECTS := $(SOURCES:$(SRC_DIRECTORY)/%.cpp=$(OBJ_DIRECTORY)/%.o)
 
@@ -33,19 +34,20 @@ EXECUTABLE := $(BIN_DIRECTORY)/a.out
 
 all: $(EXECUTABLE)
 
+-include $(call rwildcard, $(OBJ_DIRECTORY), *.d)
+
 $(EXECUTABLE): $(OBJECTS)
 	@$(CREATE_DIRS)
 	@echo "linking $@"
 	@$(CXX) $(OBJECTS) -o $@ $(LFLAGS)
 
-$(OBJ_DIRECTORY)/%.o: $(SRC_DIRECTORY)/%.cpp $(HEADERS)
+$(OBJ_DIRECTORY)/%.o: $(SRC_DIRECTORY)/%.cpp
 	@$(CREATE_DIRS)
 	@echo "compile $@"
-	@$(CXX) -c $< -o $@ $(CXXFLAGS)
+	@$(CXX) -c $< -o $@ $(CXXFLAGS) -MP -MD
 
 clean:
 	@rm -rf $(OBJ_DIRECTORY)
 	@rm -rf $(BIN_DIRECTORY)
 ```
 
-To prevent total recompilation, it is suggested that larger projects with a lot of header files use the `get_headers.sh` script. Just replace `$(HEADERS)` with  **`$(shell ./get_headers.sh $(SRC_DIRECTORY)/*.cpp $(INC_DIRECTORIES))`** in your recipe dependency list.
